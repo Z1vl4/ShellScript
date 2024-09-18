@@ -1,0 +1,65 @@
+#Alva Nilsson Aspnor, ITF
+
+
+#!/bin/bash
+
+#provide username, fullname as first arguments
+if [ $# -lt 3 ];
+then
+  	echo "Please enter= USERNAME (space) FULLNAME (First and lastname, seperated with a space)"
+ 	exit 1
+fi
+
+USER_NAME="$1"
+REAL_FULL_NAME="${*:2}"
+
+# Make sure the script is being executed with superuser privileges.
+
+if [[ "${UID}" -ne 0 ]];
+then
+	echo 'You do not have superuser privileges and therefor cant create new users'
+	exit 1
+	
+fi
+
+# create user with fullname, if user already exist: error message 
+
+useradd -mc "$REAL_FULL_NAME" $USER_NAME &>/dev/null
+if [[ $? -ne 0 ]];
+then 
+	echo "User already exist, you cant create a user with this username "
+	exit 1
+fi 
+
+# generate password, "sudo apt-get install makepasswd"
+
+USER_PASSWORD=$(makepasswd -count 1 -minchar 8)
+
+echo "$USER_NAME:$USER_PASSWORD"|chpasswd &>/dev/null
+
+if [[ $? -ne 0 ]];
+then 
+	echo "Password werent set correctly, the user has been deleted"
+	userdel -r $USER_NAME &>/dev/null
+	exit 1
+fi
+
+
+# Force password change on first login.
+
+passwd -e ${USER_NAME} &>/dev/null
+
+
+# Display the username, password, and the host where the user was created.
+
+echo "
+Summary of new created user: OBS! SAVE PASSWORD! "
+echo "Username: $USER_NAME"
+echo "Password: $USER_PASSWORD"
+echo "Full Name: $REAL_FULL_NAME"
+echo "Host where $USER_NAME was created: $HOSTNAME"
+
+
+# Finally, we can exit with status 0 (i.e. success)
+
+exit 0

@@ -1,0 +1,64 @@
+#Alva Nilsson Aspnor, ITF
+
+!/bin/bash
+
+# Make sure the script is being executed with superuser privileges.
+
+if [[ "${UID}" -ne 0 ]];
+then
+	echo 'You do not have superuser privileges'
+	exit 1
+else 
+	echo 'You do have superuser privileges'
+	
+fi
+
+#get fullname 
+
+read -p "Please enter your REAL full name: " REAL_FULL_NAME
+
+
+# create user with fullname, if user already exist: error message 
+
+read -p "To create a user, please enter a valid username: " USER_NAME
+
+useradd -mc "$REAL_FULL_NAME" $USER_NAME 2>&1
+
+if [[ $? -ne 0 ]];
+then 
+	echo "User already exist, you cant create a user with this username "
+	exit 1
+fi 
+
+
+# Set the password to the user, if the password wasent set correctly: delete user
+
+read -p "To create a password, please enter a valid password: " USER_PASSWORD
+
+echo "$USER_NAME:$USER_PASSWORD"|chpasswd 2>&1
+
+if [[ $? -ne 0 ]];
+then 
+	echo "Password werent set correctly, the user has been deleted"
+	userdel -r $USER_NAME 2>&1
+	exit 1
+fi
+
+# Force password change on first login.
+
+passwd -e ${USER_NAME} 
+
+
+# Display the username, password, and the host where the user was created.
+
+echo "
+Summary of new created user: "
+echo "Username: $USER_NAME"
+echo "Password: $USER_PASSWORD"
+echo "Full Name: $REAL_FULL_NAME"
+echo "Host where $USER_NAME was created: $HOSTNAME"
+
+
+# Finally, we can exit with status 0 (i.e. success)
+
+exit 0

@@ -1,0 +1,64 @@
+#Alva Nilsson Aspnor, ITF
+
+#!/bin/bash
+
+# Make sure the script is being executed with superuser privileges.
+if [[ "${UID}" -ne 0 ]];
+then
+	echo 'You do not have superuser privileges, therefor you cant delete users'
+	exit 1
+else 
+	echo 'You do have superuser privileges'
+fi
+
+# Make sure the ARCHIVE_DIR directory exists. If not, it should be created.
+
+if [ -d "/archive" ];
+then 
+	echo "the /archive directory do exists, proceeding..."
+else 
+	mkdir /archive 
+	echo "/archive has now been created..." 
+fi
+
+
+# Get the users you want to delete, if left empty, exitcode 1, else split usernames
+read -p "User(s) to delete: " USER_NAME
+
+if [[ $USER_NAME = "" ]]; then
+	echo "you have to write a username"
+	exit 1
+else
+	SPLIT_NAMES=($(tr "," " " <<< "$USER_NAME"))
+fi
+
+# Loop through all the usernames supplied as arguments.
+for user in "${SPLIT_NAMES[@]}";do
+	#UID > 1000, else exitcode 1 
+	#hello hello, i had to put UID == 1000 instead of UID -lt 1000, because idk it didnt work on VMware otherwise sooo yeah... xD 
+	if [[ $UID == 1000 ]];then
+		echo "not member of helpdesk team"
+		exit 1
+	fi
+	#compress home directory, move home directory to ARC_DIR
+	tar -a -cf /archive/$user.tar.gz /home/$user &>/dev/null
+	if [[ $? -ne 0 ]]; then
+		echo "compression of directory failed: $user"
+		rm /archive/$user.tar.gz
+		exit 1
+	else 
+		echo "compression of directory completed: $user"
+	fi
+	#delete user & home directory, else exitcode 1 
+	killall -u $user &>/dev/null
+	userdel -r $user &>/dev/null
+	if [[ $? -ne 0 ]]; then
+		echo "deletion of user and home directory failed: $user"
+		rm /archive/$user.tar.gz
+		exit 1
+	else 
+		echo "$user has succesfully been deleted"
+	fi
+done 
+
+
